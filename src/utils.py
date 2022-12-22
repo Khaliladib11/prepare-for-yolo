@@ -1,7 +1,8 @@
 # Utils file that has some useful functions
 
 import os
-import numpy as np
+import shutil
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
@@ -78,3 +79,44 @@ def show(image_path, bbox, idx, idx2cls, save_path=None) -> None:
     if save_path:
         assert not check_file_path(save_path), f"There is file is the same name at {save_path}."
         plt.savefig(save_path)
+
+
+def check_dataset(dataset):
+    loop = tqdm(dataset)
+    for idx, item in enumerate(loop):
+        image_path, bbox = item
+        assert check_file_path(image_path), ""
+        assert check_file_type(image_path), ""
+        for box in bbox:
+            assert box[0] > len(
+                dataset.classes_list), f"class at index number {idx} is out of range. {box[0]} is out of range."
+
+
+def create_folders_for_yolo(yolo_path):
+    assert check_file_path(yolo_path), f"Can't find {yolo_path}"
+
+    if check_file_path(os.path.join(yolo_path, "dataset")):
+        shutil.rmtree(os.path.join(yolo_path, "dataset"), ignore_errors=True)
+
+    os.mkdir(os.path.join(yolo_path, "dataset"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "images"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "images", "train"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "images", "test"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "images", "val"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "labels"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "labels", "train"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "labels", "test"))
+    os.mkdir(os.path.join(yolo_path, "dataset", "labels", "val"))
+    print("⚡" * 30, "Folders Created", "⚡" * 30)
+
+
+def move_files(dataset, image_destination, label_destination):
+    assert check_file_path(image_destination), f"Cannot find {image_destination}"
+    assert check_file_path(label_destination), f"Cannot find {label_destination}"
+    loop = tqdm(dataset)
+    for idx, item in enumerate(loop):
+        image_path, bbox = item
+        shutil.copy(image_path, os.path.join(image_destination, idx))
+        with open(os.path.join(label_destination, f"{idx}.txt"), 'w') as f:
+            for box in bbox:
+                f.write(f"{box[0]} {box[1]} {box[2]} {box[3]} {box[4]}\n")
